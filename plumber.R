@@ -1,46 +1,43 @@
-#
-# This is a Plumber API. You can run the API by clicking
-# the 'Run API' button above.
-#
-# Find out more about building APIs with Plumber here:
-#
-#    https://www.rplumber.io/
-#
-
+# plumber.R
 library(plumber)
+library(ggplot2)
 
-#* @apiTitle Plumber Example API
-#* @apiDescription Plumber example description.
-
-#* Echo back the input
-#* @param msg The message to echo
-#* @get /echo
-function(msg = "") {
-    list(msg = paste0("The message is: '", msg, "'"))
-}
-
-#* Plot a histogram
-#* @serializer png
-#* @get /plot
+#* Health check
+#* @get /health
 function() {
-    rand <- rnorm(100)
-    hist(rand)
+  list(status = "ok", time = as.character(Sys.time()))
 }
 
-#* Return the sum of two numbers
-#* @param a The first number to add
-#* @param b The second number to add
-#* @post /sum
-function(a, b) {
-    as.numeric(a) + as.numeric(b)
+#* Mean of random normals
+#* @param n:int=10
+#* @param mu:double=0
+#* @param sd:double=1
+#* @get /mean
+function(n = 10, mu = 0, sd = 1) {
+  x <- rnorm(n, mean = mu, sd = sd)
+  list(
+    n = as.integer(n),
+    mu = as.numeric(mu),
+    sd = as.numeric(sd),
+    mean = mean(x),
+    sd_sample = sd(x)
+  )
 }
 
-# Programmatically alter your API
-#* @plumber
-function(pr) {
-    pr %>%
-        # Overwrite the default serializer to return unboxed JSON
-        pr_set_serializer(serializer_unboxed_json())
+#* Boxplot (PNG)
+#* @png
+#* @get /boxplot
+function() {
+  df <- data.frame(
+    group = rep(LETTERS[1:3], each = 50),
+    value = c(rnorm(50,10,2), rnorm(50,15,3), rnorm(50,20,4))
+  )
+  p <- ggplot(df, aes(group, value)) +
+    geom_boxplot() +
+    ggtitle("Boxplot from Plumber API (Railway)")
+  print(p)
 }
 
-pr("plumber.R") %>% pr_run(port=8000, host="0.0.0.0")
+# Railway надає порт через env var PORT
+pr() |>
+  pr_run(host = "0.0.0.0", port = as.integer(Sys.getenv("PORT", "8000")))
