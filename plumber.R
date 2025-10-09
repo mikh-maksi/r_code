@@ -42,3 +42,5 @@ function(pr) {
         # Overwrite the default serializer to return unboxed JSON
         pr_set_serializer(serializer_unboxed_json())
 }
+
+pr("plumber.R") %>% pr_run(port=8000, host="0.0.0.0")
